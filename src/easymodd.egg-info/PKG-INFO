@@ -1,0 +1,14 @@
+Metadata-Version: 2.4
+Name: easymodd
+Version: 0.1.0
+Summary: A configurable, training-first numerical machine learning library
+Requires-Python: >=3.11
+Requires-Dist: numpy>=2.0
+Provides-Extra: cuda
+Requires-Dist: cupy-cuda12x>=13.6; extra == "cuda"
+Provides-Extra: data
+Requires-Dist: pandas>=2.0; extra == "data"
+Requires-Dist: pyarrow>=15.0; extra == "data"
+Requires-Dist: scikit-learn>=1.4; extra == "data"
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"

@@ -1,4 +1,27 @@
+import os
+from pathlib import Path
+
 import numpy as np
+
+
+def _configure_cuda_dll_search_path():
+    if os.name != "nt":
+        return
+    candidates = []
+    for variable in ("CUDA_PATH_V12_6", "CUDA_PATH"):
+        value = os.environ.get(variable)
+        if value:
+            candidates.append(Path(value) / "bin")
+    candidates.extend(Path(r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA").glob("v12.*\bin"))
+    for directory in candidates:
+        if directory.is_dir():
+            os.environ["PATH"] = str(directory) + os.pathsep + os.environ.get("PATH", "")
+            if hasattr(os, "add_dll_directory"):
+                os.add_dll_directory(str(directory))
+            return
+
+
+_configure_cuda_dll_search_path()
 
 # GPU Support — same validated pattern as chatbot_model.py
 try:
@@ -9,6 +32,7 @@ try:
         cp.random.seed(42)
         _test2 = cp.random.randn(4, 4)
         _ = cp.exp(_test2)
+        _ = cp.dot(cp.ones((2, 2), dtype=cp.float32), cp.ones((2, 2), dtype=cp.float32))
         GPU_AVAILABLE = True
         print("Transformer: GPU verified - using CuPy!")
     except Exception as _e:

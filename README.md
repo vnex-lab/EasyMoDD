@@ -1,287 +1,136 @@
-# VnexAI Chatbot - Train Your Own AI from Scratch
+# EasyMoDD
 
-Train custom chatbot models from scratch using NumPy and export as .bin files!
+EasyMoDD is a configurable, training-first machine-learning library. It is
+programmable from Python like a numerical library, with reusable tensors,
+modules, datasets, losses, optimizers, trainers, model families, and checkpoint
+policies.
 
-## Features
+Models initialize randomly unless a consuming project explicitly resumes from
+its own checkpoint. EasyMoDD does not include a chatbot, web application,
+built-in corpus, project `config.txt`, generated checkpoints, or demo data.
 
-✅ **Two Architectures** - Choose RNN (fast) or **Transformer (like ChatGPT!)**  
-✅ **GPU Acceleration** - Automatically uses GPU (CuPy) if available, falls back to CPU (NumPy)  
-✅ **Attention Mechanism** - Transformers use multi-head attention for smarter responses  
-✅ **Multiple data formats** - JSON, CSV, TSV, JSONL, text files with various separators  
-✅ **Export as .bin** - Download trained model and tokenizer as binary files  
-✅ **Chat interface** - Test your chatbot in real-time with temperature control  
-✅ **Massive Models** - Support for 1B+ parameter models on RTX 4090/5090!  
-✅ **Batch Training** - Process up to 512 samples simultaneously for 10-50x speedup
+## Install
 
-## Supported Data Formats
-
-### 1. Conversation Format (JSON)
-```json
-[
-  {"user": "Hello", "bot": "Hi there!"},
-  {"user": "How are you?", "bot": "I'm doing great!"}
-]
+```powershell
+python -m pip install easymodd
 ```
 
-### 2. Code Debugging Format (JSON)
-```json
-[
-  {
-    "language": "Python",
-    "original_status": "Runtime Error",
-    "original_src": "buggy code here...",
-    "changed_src": "fixed code here...",
-    "problem_id": "p123",
-    "error": "0"
-  }
-]
+For a local checkout:
+
+```powershell
+python -m pip install -e .
 ```
 
-### 3. Numbered JSON Format (Text File)
-```
-0:{"original_src": "...", "changed_src": "...", "language": "Python"}
-1:{"original_src": "...", "changed_src": "...", "language": "C++"}
-```
+Optional integrations:
 
-### 4. Line-by-Line Format (Text File)
-Supports multiple separators: `|`, `→`, `-`, tab
-```
-user: Hello | bot: Hi there!
-question: How are you? → answer: I'm great!
-input: What's your name? - output: I'm VnexAI!
-Q: Tell me a joke       A: Why did the chicken cross the road?
+```powershell
+python -m pip install easymodd[cuda]
+python -m pip install easymodd[data]
+python -m pip install easymodd[dev]
 ```
 
-### 5. CSV/TSV Format
-Headers can be: user/bot, question/answer, input/output, q/a, prompt/response, etc.
-```csv
-user,bot
-Hello,Hi there!
-How are you?,I'm great!
-```
+## Python API
 
-### 6. JSONL (JSON Lines) Format
-```jsonl
-{"user": "Hello", "bot": "Hi there!"}
-{"user": "How are you?", "bot": "I'm great!"}
-```
-
-## Quick Start
-
-### 1. Upload Your Data
-- Navigate to **Data Upload**
-- Choose your file format (JSON or text)
-- Upload your training data
-- The app will auto-detect the format and convert it
-
-### 2. Setup Model
-- Navigate to **Model Setup**
-- Click **Build Vocabulary** to create word dictionary
-- **Choose Architecture:**
-  - **RNN (Fast, Basic)**: Simple sequence model, faster training
-  - **Transformer (Smart, Like ChatGPT!)**: Attention-based, MUCH smarter responses!
-- Configure model parameters:
-  - **For RNN**: Embedding dim, Hidden dim, Learning rate
-  - **For Transformer**: Embedding dim, Attention heads, Layers, Feed-forward dim
-- **GPU Size Guide:**
-  - GTX 1650 (4GB): embed=512, hidden=1024 (or 4 layers Transformer)
-  - RTX 3060 (12GB): embed=1024, hidden=2048 (or 6 layers Transformer)
-  - RTX 4090 (24GB): embed=4096, hidden=8192 (or 12 layers Transformer)
-  - RTX 5090 (32GB+): embed=8192, hidden=16384+ (or 24 layers Transformer!)
-- Click **Create Model**
-- App shows **parameter count** and **VRAM estimate**!
-
-### 3. Train
-- Navigate to **Training**
-- Set number of epochs (start with 50-100)
-- **Set batch size** (32-64 recommended for GPU, higher = faster!)
-- Click **Start Training**
-- Watch the loss decrease over time
-
-### 4. Test Your Chatbot
-- Navigate to **Chat Interface**
-- Type messages and see responses
-- Test how well your model learned
-
-### 5. Export Model
-- Navigate to **Export Model**
-- Download **Model.bin** (contains all weights and architecture)
-- Download **Tokenizer.bin** (contains vocabulary)
-- Use these files with other platforms or applications
-
-## Using Your Code Debugging Data
-
-If you have code debugging data (like the provided example), the app will:
-
-1. **Auto-detect** the format (original_src → changed_src)
-2. **Convert** to conversational format:
-   - User: "Fix this [language] code with [error]: [buggy code]"
-   - Bot: "[fixed code]"
-3. **Train** the chatbot to learn code fixing patterns
-4. **Export** as .bin for deployment
-
-## GPU Acceleration
-
-VnexAI automatically detects and uses GPU when available:
-
-- **GPU Mode**: Uses CuPy for GPU-accelerated training (much faster!)
-- **CPU Mode**: Falls back to NumPy if no GPU is available
-- **Automatic**: No configuration needed - just run the app!
-
-When you create a model, the app will show:
-- 🚀 **GPU Acceleration ACTIVE** - Training on GPU
-- 💻 **CPU Mode** - Training on CPU
-
-Training on GPU can be **10-100x faster** depending on your hardware!
-
-### Batch Training for Maximum Speed
-
-**What is Batch Training?**
-Instead of training one conversation at a time, batch training processes multiple samples simultaneously on your GPU!
-
-**Batch Size Recommendations:**
-- **GTX 1650 (4GB)**: Use batch size 32-64
-- **RTX 3060 (12GB)**: Use batch size 64-128
-- **RTX 4090 (24GB)**: Use batch size 128-256
-- **RTX 5090 (32GB+)**: Use batch size 256-512
-- **CPU Mode**: Use batch size 8-16
-
-**Why Batch Training Matters:**
-- ⚡ **10-50x faster** on GPU vs one-by-one training
-- 🔥 **Maxes out GPU usage** - keeps your GPU busy 100% of the time
-- 💪 **Better gradient estimates** - more stable training
-
-**Example Speed Improvement:**
-- Without batches: 200MB VRAM, slow training (GPU idle 90% of time)
-- With batch size 32: 2GB VRAM, **30x faster** (GPU at 100%)!
-
-### Fixing GPU Issues on Windows
-
-If you have a GPU but the app shows "CPU Mode", you might be missing CUDA components:
-
-**Error**: `DLL load failed while importing curand`
-
-**Solution**:
-1. **Install CUDA Toolkit**: Download from [NVIDIA CUDA Downloads](https://developer.nvidia.com/cuda-downloads)
-   - Choose CUDA 12.x version (matches cupy-cuda12x)
-   - Make sure to install the full toolkit, not just drivers
-
-2. **Verify Installation**:
-   - Open Command Prompt and run: `nvcc --version`
-   - Should show CUDA version 12.x
-
-3. **Reinstall CuPy** (if needed):
-   ```bash
-   pip uninstall cupy-cuda12x
-   pip install cupy-cuda12x
-   ```
-
-4. **Restart the app** - it should now detect and use your GPU!
-
-**Note**: Your GPU must be NVIDIA with CUDA support. AMD/Intel GPUs won't work with CuPy.
-
-## Model Architecture
-
-### RNN Architecture (Fast, Basic)
-- **Type**: Sequence-to-sequence RNN (Encoder-Decoder)
-- **Encoder**: Processes input text into hidden representation
-- **Decoder**: Generates response token by token
-- **Best for**: Quick training, simple conversations, smaller datasets
-
-### Transformer Architecture (Smart, Like ChatGPT!)
-- **Type**: Attention-based Encoder-Decoder (like GPT, BERT)
-- **Multi-Head Attention**: Learns what parts of input are important
-- **Positional Encoding**: Understands word order without recurrence
-- **Layer Normalization**: Stable training for deep networks
-- **Best for**: Complex conversations, better context understanding, smarter responses!
-
-**Why Transformers are Better:**
-- ✅ **Attention mechanism** - Focuses on relevant parts of conversation
-- ✅ **Parallel processing** - Faster training on GPU
-- ✅ **Better memory** - Remembers longer contexts
-- ✅ **Scalable** - Can build HUGE models (1B+ parameters!)
-- ✅ **State-of-the-art** - Same tech as ChatGPT, GPT-4, Claude!
-
-**Implementation**: Pure NumPy/CuPy (GPU support included)  
-**Export Format**: Pickle binary (.bin files)
-
-## File Outputs
-
-After training, you can download:
-
-1. **vnexai_chatbot.bin**
-   - Model weights (embedding, encoder, decoder, output layers)
-   - Architecture parameters
-   - Training history
-
-2. **vnexai_chatbot_tokenizer.bin**
-   - Vocabulary (word ↔ index mapping)
-   - Special tokens
-   - Vocabulary size
-
-## Tips for Better Results
-
-### For RNN Models:
-1. **More data = better results** - Aim for 100+ training pairs
-2. **Consistent format** - Make sure your data is clean and consistent
-3. **Moderate epochs** - 5-15 epochs for repetitive data, 50-100 for diverse data
-4. **Adjust hidden dimension** - Larger for complex tasks (512-1024)
-5. **Watch for overfitting** - If comma spam appears, reduce epochs!
-
-### For Transformer Models:
-1. **Start small** - 4 layers, 8 heads for testing
-2. **Scale up gradually** - More layers = smarter but needs more VRAM
-3. **Lower learning rate** - Try 0.001 instead of 0.01
-4. **Fewer epochs needed** - Transformers learn faster! Try 5-20 epochs
-5. **Use temperature** - Adjust 0.5-1.0 for best chat responses
-
-### General Tips:
-- **Test regularly** - Use chat interface to monitor progress
-- **GPU recommended** - Transformers are MUCH faster on GPU
-- **Clean data** - Remove duplicates for better learning
-
-## Technical Details
-
-- Built with: Streamlit, NumPy
-- Model: Custom RNN encoder-decoder
-- Training: Backpropagation through time
-- Loss: Cross-entropy
-- Optimization: Gradient descent
-
-## Deployment
-
-The exported .bin files can be loaded in:
-- Other Python applications (using pickle)
-- Custom inference servers
-- Chatbot platforms that support custom models
-
-To load the model in Python:
 ```python
-import pickle
-from chatbot_model import VnexAIChatbot
-from chatbot_tokenizer import ChatbotTokenizer
+import numpy as np
+from easymodd import ArrayDataset, MSELoss, SGD, Trainer, build_mlp
 
-# Load model
-model = VnexAIChatbot(vocab_size=0, embedding_dim=128, hidden_dim=256)
-model.load_model('vnexai_chatbot.bin')
-
-# Load tokenizer
-tokenizer = ChatbotTokenizer()
-tokenizer.load('vnexai_chatbot_tokenizer.bin')
-
-# Generate response
-input_text = "Hello"
-input_seq = tokenizer.encode(input_text, add_special_tokens=False)
-response_indices = model.generate_response(np.array(input_seq))
-response = tokenizer.decode(response_indices.tolist())
-print(response)
+model = build_mlp(input_size=1, hidden_sizes=[8], output_size=1)
+dataset = ArrayDataset(
+    np.array([[1.0], [2.0], [3.0]], dtype=np.float32),
+    np.array([[2.0], [4.0], [6.0]], dtype=np.float32),
+)
+history = Trainer(
+    SGD(model.parameters(), learning_rate=0.01),
+    MSELoss(),
+    max_steps=100,
+).fit(model, dataset)
+print(history.values["loss"][-1])
 ```
 
-## Need Help?
+The programmable foundation includes:
 
-- Check the Data Preview to ensure your data loaded correctly
-- Monitor training loss - it should decrease over epochs
-- If responses are poor, try more training epochs or more data
-- For code debugging, ensure original_src and changed_src are present
+- NumPy and explicit CUDA backend helpers
+- `Module`, `Parameter`, `Linear`, `ReLU`, and `Sequential`
+- MLP model factory
+- `ArrayDataset` and packed `TextDataset`
+- `BatchLoader`, deterministic splits, and `Subset`
+- MSE and cross-entropy loss contracts
+- SGD, Adam, and AdamW optimizers
+- Cosine and warmup learning-rate schedulers
+- Reusable `Trainer` and `TrainingHistory`
+- Accuracy, MAE, and perplexity metrics
+- JSONL metrics logging and early stopping callbacks
+- Versioned model/optimizer/scheduler serialization
+- Config loading and validation for consuming projects
+- Checkpoint enable/disable, retention, and compression policy
+- Separate text Transformer and Vision Transformer configuration modules
 
-Happy training! 🤖
+The restored prototype scripts remain available as compatibility programs for
+existing custom checkpoints. New projects should import EasyMoDD directly.
+
+## Consumer Project Configuration
+
+EasyMoDD does not force users into one project layout. A consuming project can
+create its own `config.txt` using TOML syntax and load it with:
+
+```python
+from easymodd import load_config
+config = load_config("config.txt")
+```
+
+The config loader supports project-defined paths for datasets, runs, models,
+logs, and checkpoints. The library never assumes a filename such as
+`best.bin`.
+
+A consumer project can configure checkpoint behavior like this:
+
+```toml
+[checkpoints]
+enabled = true
+keep_recent = 2
+compress_old = true
+```
+
+When disabled, `CheckpointManager` creates no directory or files. When enabled,
+older numbered checkpoints can be compressed while recent checkpoints remain
+available.
+
+## Package Layout
+
+```text
+src/easymodd/
+  models/
+    mlp.py
+    text_transformer.py
+    vision_transformer.py
+  data.py
+  losses.py
+  nn.py
+  tensor.py
+  optim.py
+  training.py
+  checkpoints.py
+  config.py
+  cli.py
+```
+
+Each model family has its own module. The shared training contracts are designed
+so new model types can be added without changing dataset or checkpoint code.
+
+## Data and Training
+
+The library does not ship a general-purpose training database. Users provide
+legally obtained text, image, or tabular data in their own projects. EasyMoDD
+provides dataset contracts and validation helpers; it does not pretend that a
+small demo corpus can produce a general assistant.
+
+## Development Status
+
+The tensor/module API, programmable MLP training loop, dataset contracts,
+checkpoint policy, model-family layout, and config loader are implemented.
+Text Transformer training, Vision Transformer training, full resume manifests,
+evaluation, schedulers, callbacks, and additional model families are active
+parts of the public-library roadmap.
+
+Support development on [Ko-fi](https://ko-fi.com/vnexlab).

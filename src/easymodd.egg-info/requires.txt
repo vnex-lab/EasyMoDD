@@ -1,0 +1,12 @@
+numpy>=2.0
+
+[cuda]
+cupy-cuda12x>=13.6
+
+[data]
+pandas>=2.0
+pyarrow>=15.0
+scikit-learn>=1.4
+
+[dev]
+pytest>=8.0
