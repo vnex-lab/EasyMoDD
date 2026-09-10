@@ -1,0 +1,22 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local training outputs
+runs/
+checkpoints/
+*.bin
+*.pkl
+*.zip
+
+# Local secrets and consumer-project configuration
+.env
+.env.*
+config.txt

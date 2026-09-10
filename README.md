@@ -21,6 +21,33 @@ For a local checkout:
 python -m pip install -e .
 ```
 
+## Publish to PyPI
+
+The package is configured for GitHub Actions Trusted Publishing. Before the
+first release, create a PyPI project named `easymodd`, then add this trusted
+publisher on PyPI:
+
+- Owner: `vnex-lab`
+- Repository: `EasyMoDD`
+- Workflow: `publish.yml`
+- Environment: `pypi`
+
+After that one-time setup, publish a release from GitHub. The workflow builds
+the wheel and source archive, validates both with Twine, and publishes them
+without a stored PyPI token.
+
+For a local dry run:
+
+```powershell
+python -m pip install --upgrade build twine
+python -m build
+python -m twine check dist/*
+```
+
+The package version is controlled by `project.version` in `pyproject.toml`.
+Increase it for every PyPI release, and do not reuse an already-uploaded
+version.
+
 Optional integrations:
 
 ```powershell
