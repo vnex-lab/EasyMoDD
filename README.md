@@ -52,16 +52,22 @@ The programmable foundation includes:
 
 - NumPy and explicit CUDA backend helpers
 - `Module`, `Parameter`, `Linear`, `ReLU`, and `Sequential`
+- GELU, sigmoid, tanh, and dropout layers
 - MLP model factory
+- Model registries for custom factories
 - `ArrayDataset` and packed `TextDataset`
 - `BatchLoader`, deterministic splits, and `Subset`
+- Composable transforms and batch collation
 - MSE and cross-entropy loss contracts
+- L1 and Huber losses
 - SGD, Adam, and AdamW optimizers
 - Cosine and warmup learning-rate schedulers
 - Reusable `Trainer` and `TrainingHistory`
 - Accuracy, MAE, and perplexity metrics
 - JSONL metrics logging and early stopping callbacks
+- Local experiment tracking and dependency-free summaries
 - Versioned model/optimizer/scheduler serialization
+- Environment-only secrets for optional integrations
 - Config loading and validation for consuming projects
 - Checkpoint enable/disable, retention, and compression policy
 - Separate text Transformer and Vision Transformer configuration modules
@@ -117,6 +123,30 @@ src/easymodd/
 
 Each model family has its own module. The shared training contracts are designed
 so new model types can be added without changing dataset or checkpoint code.
+
+## Extending EasyMoDD
+
+Register a custom model factory:
+
+```python
+from easymodd import ModelRegistry
+
+registry = ModelRegistry()
+registry.register("my_model", lambda width=8: build_my_model(width))
+model = registry.create("my_model", width=32)
+```
+
+Optional integrations can read environment variables without storing secrets:
+
+```python
+from easymodd import SecretStore
+
+secrets = SecretStore(prefix="MY_APP_")
+token = secrets.get("TRACKING_TOKEN")
+```
+
+EasyMoDD never writes API keys to configs, checkpoints, experiment files, or
+logs. Provider-specific integrations can be built on top of this helper.
 
 ## Data and Training
 

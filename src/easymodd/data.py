@@ -72,19 +72,30 @@ class Subset(Dataset):
 class ArrayDataset(Dataset):
     """Dataset for aligned NumPy/CuPy-compatible input and target arrays."""
 
-    def __init__(self, inputs, targets):
+    def __init__(self, inputs, targets, transform=None, target_transform=None):
         if len(inputs) != len(targets):
             raise ValueError("inputs and targets must contain the same number of rows")
         if len(inputs) == 0:
             raise ValueError("dataset cannot be empty")
         self.inputs = inputs
         self.targets = targets
+        self.transform = transform
+        self.target_transform = target_transform
 
     def __len__(self):
         return len(self.inputs)
 
     def __getitem__(self, index):
-        return self.inputs[index], self.targets[index]
+        inputs, targets = self.inputs[index], self.targets[index]
+        return (self.transform(inputs) if self.transform else inputs,
+                self.target_transform(targets) if self.target_transform else targets)
+
+
+def collate_batch(items):
+    if not items:
+        raise ValueError("Cannot collate an empty batch")
+    inputs, targets = zip(*items)
+    return np.stack(inputs), np.stack(targets)
 
 
 class TextDataset(Dataset):

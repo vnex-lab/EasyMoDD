@@ -38,6 +38,13 @@ class Module:
         for module in self._modules.values():
             yield from module.parameters()
 
+    def named_parameters(self, prefix: str = ""):
+        for name, parameter in self._parameters.items():
+            yield (f"{prefix}.{name}" if prefix else name), parameter
+        for name, module in self._modules.items():
+            child_prefix = f"{prefix}.{name}" if prefix else name
+            yield from module.named_parameters(child_prefix)
+
     def state_dict(self) -> dict[str, object]:
         state = {}
         for name, parameter in self._parameters.items():
@@ -46,6 +53,20 @@ class Module:
             for child_name, value in module.state_dict().items():
                 state[f"{name}.{child_name}"] = value
         return state
+
+    def load_state_dict(self, state: dict[str, object], *, strict: bool = True) -> None:
+        expected = dict(self.named_parameters())
+        missing = sorted(set(expected) - set(state))
+        unexpected = sorted(set(state) - set(expected))
+        if strict and (missing or unexpected):
+            raise ValueError(f"State mismatch: missing={missing}, unexpected={unexpected}")
+        for name, value in state.items():
+            if name not in expected:
+                continue
+            parameter = expected[name]
+            if parameter.value.shape != value.shape:
+                raise ValueError(f"Shape mismatch for '{name}': expected {parameter.value.shape}, got {value.shape}")
+            parameter.value[...] = value
 
     def train(self, mode: bool = True):
         self.training = mode
@@ -90,6 +111,41 @@ class ReLU(Module):
 
     def backward(self, gradient):
         return gradient * self._mask
+
+
+class GELU(Module):
+    def forward(self, inputs):
+        return inputs * 0.5 * (1 + np.tanh(0.7978845608 * (inputs + 0.044715 * inputs ** 3)))
+
+
+class Sigmoid(Module):
+    def forward(self, inputs):
+        self._output = 1 / (1 + np.exp(-np.clip(inputs, -60, 60)))
+        return self._output
+
+
+class Tanh(Module):
+    def forward(self, inputs):
+        self._output = np.tanh(inputs)
+        return self._output
+
+
+class Dropout(Module):
+    def __init__(self, probability: float = 0.1):
+        super().__init__()
+        if not 0 <= probability < 1:
+            raise ValueError("dropout probability must be in [0, 1)")
+        self.probability = probability
+
+    def forward(self, inputs):
+        if not self.training or self.probability == 0:
+            self._mask = None
+            return inputs
+        self._mask = (np.random.random(inputs.shape) >= self.probability) / (1 - self.probability)
+        return inputs * self._mask
+
+    def backward(self, gradient):
+        return gradient if self._mask is None else gradient * self._mask
 
 
 class Sequential(Module):
