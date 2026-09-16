@@ -36,6 +36,7 @@ dev = ["build>=1.2", "pytest>=8.0", "twine>=5.0"]
 
 [project.scripts]
 easymodd = "easymodd.cli:main"
+easymodel = "EasyModel.cli:main"
 
 [build-system]
 requires = ["setuptools>=68"]

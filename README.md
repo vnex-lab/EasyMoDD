@@ -21,28 +21,6 @@ For a local checkout:
 python -m pip install -e .
 ```
 
-## Publish to PyPI
-
-The package is configured for GitHub Actions Trusted Publishing. Before the
-first release, create a PyPI project named `easymodd`, then add this trusted
-publisher on PyPI:
-
-- Owner: `vnex-lab`
-- Repository: `EasyMoDD`
-- Workflow: `publish.yml`
-- Environment: `pypi`
-
-After that one-time setup, publish a release from GitHub. The workflow builds
-the wheel and source archive, validates both with Twine, and publishes them
-without a stored PyPI token.
-
-For a local dry run:
-
-```powershell
-python -m pip install --upgrade build twine
-python -m build
-python -m twine check dist/*
-```
 
 The package version is controlled by `project.version` in `pyproject.toml`.
 Increase it for every PyPI release, and do not reuse an already-uploaded
@@ -191,3 +169,47 @@ evaluation, schedulers, callbacks, and additional model families are active
 parts of the public-library roadmap.
 
 Support development on [Ko-fi](https://ko-fi.com/vnexlab).
+
+## EasyModel artifact tooling
+
+This distribution also includes the separate `EasyModel` namespace for safe,
+configurable artifact inspection and compiler/decompiler adapters. It does not
+replace the `easymodd` training API.
+
+```python
+from EasyModel import SecurityPolicy, detect_artifact
+from EzDecompiler import EzDecompiler
+
+handler = EzDecompiler(policy=SecurityPolicy(allow_native_tools=False))
+artifact = handler.detect("application.jar")
+report = handler.inspect("application.jar")
+print(artifact.kind, report.to_json())
+```
+
+From a source checkout:
+
+```powershell
+python EzDecompiler.py detect application.jar --json
+python EzDecompiler.py inspect application.jar --json
+python EzDecompiler.py decompile application.jar --dry-run --json
+```
+
+After installation:
+
+```powershell
+easymodel detect application.jar --json
+easymodel inspect application.jar --json
+```
+
+Supported artifact families include Java JAR/class, Windows PE EXE/DLL,
+.NET assemblies, Python bytecode, and WebAssembly detection. The first
+release provides safe built-in JAR inspection plus optional external-tool
+adapters. Native binaries can produce headers, imports, assembly, or
+pseudocode, but cannot reliably restore original optimized source code.
+
+Compiler adapters use installed toolchains such as `javac`, `.NET`, Python,
+GCC/Clang/MSVC, or WebAssembly tools. Tool execution is policy-controlled and
+disabled by default unless explicitly enabled by the consumer project.
+
+Only analyze software you own or have permission to inspect. EasyModel does
+not provide DRM, anti-tamper, or access-control bypass functionality.
