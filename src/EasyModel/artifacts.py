@@ -34,7 +34,8 @@ def detect_artifact(path: str | Path) -> Artifact:
     source = Path(path).expanduser().resolve()
     if not source.is_file():
         raise ArtifactError(f"Artifact was not found: {source}")
-    data = source.read_bytes()[:4096]
+    with source.open("rb") as handle:
+        data = handle.read(4096)
     suffix = source.suffix.lower()
     if data.startswith(b"PK\x03\x04") and (suffix == ".jar" or _is_jar(source)):
         kind = ArtifactKind.JAR

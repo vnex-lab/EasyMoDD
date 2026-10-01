@@ -16,34 +16,45 @@ from EasyModel.backends import BackendRegistry
 from EasyModel.decompilers import JarInspector
 from EasyModel.reports import ArtifactReport
 from EasyModel.security import SecurityPolicy
+from EasyModel.events import EventBus, events
 
 
 class EzDecompiler:
     """Facade for safe inspection and configurable decompiler backends."""
 
-    def __init__(self, *, policy: SecurityPolicy | None = None, registry: BackendRegistry | None = None):
+    def __init__(self, *, policy: SecurityPolicy | None = None,
+                 registry: BackendRegistry | None = None, event_bus: EventBus | None = None):
         self.policy = policy or SecurityPolicy()
+        self.event_bus = event_bus or events
         self.registry = registry or BackendRegistry()
         if not self.registry.names():
             self.registry.register("jar-inspector", JarInspector())
 
     def detect(self, path: str | Path):
-        return detect_artifact(path)
+        artifact = detect_artifact(path)
+        self.event_bus.publish("easymodel", "artifact.detected", {"path": str(artifact.path), "kind": artifact.kind.value})
+        return artifact
 
     def backends(self) -> tuple[str, ...]:
         return self.registry.names()
 
     def inspect(self, path: str | Path, *, backend: str | None = None) -> ArtifactReport:
         artifact = detect_artifact(path)
+        self.event_bus.publish("easymodel", "artifact.inspect.started", {"path": str(artifact.path), "kind": artifact.kind.value})
         selected = self.registry.select(artifact, backend)
-        return selected.inspect(artifact, policy=self.policy)
+        report = selected.inspect(artifact, policy=self.policy)
+        self.event_bus.publish("easymodel", "artifact.inspect.completed", {"path": str(artifact.path), "backend": report.backend})
+        return report
 
     def decompile(self, path: str | Path, *, backend: str | None = None,
                   output_directory: str | Path | None = None, dry_run: bool = False) -> ArtifactReport:
         artifact = detect_artifact(path)
+        self.event_bus.publish("easymodel", "artifact.decompile.started", {"path": str(artifact.path), "kind": artifact.kind.value})
         selected = self.registry.select(artifact, backend)
-        return selected.decompile(artifact, policy=self.policy,
-                                 output_directory=output_directory, dry_run=dry_run)
+        report = selected.decompile(artifact, policy=self.policy,
+                        output_directory=output_directory, dry_run=dry_run)
+        self.event_bus.publish("easymodel", "artifact.decompile.completed", {"path": str(artifact.path), "backend": report.backend})
+        return report
 
 
 def main() -> None:

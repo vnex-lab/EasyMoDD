@@ -21,6 +21,13 @@ For a local checkout:
 python -m pip install -e .
 ```
 
+The core distribution is source-only plus NumPy; it does not bundle model
+weights, corpora, JDKs, native toolchains, browsers, or decompiler binaries.
+The web console uses Python's standard library. CUDA, tabular-data tooling,
+and AES-GCM encryption are optional extras, keeping a normal install far below
+2 GB. Large datasets, generated apps, models, and user-selected toolchains stay
+outside the library package.
+
 
 The package version is controlled by `project.version` in `pyproject.toml`.
 Increase it for every PyPI release, and do not reuse an already-uploaded
@@ -76,6 +83,38 @@ The programmable foundation includes:
 - Config loading and validation for consuming projects
 - Checkpoint enable/disable, retention, and compression policy
 - Separate text Transformer and Vision Transformer configuration modules
+- Streaming corpus fingerprints and bounded-memory duplicate audits
+- Memory-mapped text windows for large byte-token corpora
+
+### Corpus audit before training
+
+The streaming auditor fingerprints the exact source file, estimates words and
+tokens, reports blank or malformed records, and detects normalized duplicates.
+It stores only record hashes in a temporary SQLite file rather than loading the
+corpus or all hashes into RAM. Optionally write a deduplicated copy:
+
+```powershell
+easymodd audit-corpus --source corpus.jsonl --format jsonl `
+  --text-field response.text --deduplicated-output cleaned.jsonl --json
+```
+
+Plain UTF-8 text is treated as newline-delimited records. JSONL is validated
+one record at a time. The SHA-256 fingerprint and audit counts can be saved
+with an experiment to make dataset changes visible before expensive training.
+
+For training on a corpus larger than available RAM, use `MMapTextDataset`:
+
+```python
+from easymodd import MMapTextDataset
+
+with MMapTextDataset("corpus.txt", sequence_length=512, stride=512) as dataset:
+  inputs, next_tokens = dataset[0]
+  print(len(dataset), inputs.shape, next_tokens.shape)
+```
+
+It uses raw UTF-8 bytes as token IDs 0-255, keeps the source file memory-mapped,
+and materializes only the requested sequence window. Use `stride < sequence_length`
+for overlapping windows; this increases training examples and I/O.
 
 The restored prototype scripts remain available as compatibility programs for
 existing custom checkpoints. New projects should import EasyMoDD directly.
@@ -170,11 +209,41 @@ parts of the public-library roadmap.
 
 Support development on [Ko-fi](https://ko-fi.com/vnexlab).
 
+## Tests and examples
+
+The `tests/` directory contains individual subsystem tests plus a full-stack
+integration test. `examples/multi_file_project/` demonstrates a real consumer
+project layout with TOML config, multiple Python plugin files, custom web
+routes/pages, C++ source, a CMake shared-library recipe, and a custom DLL
+metadata backend.
+
+The multi-file test loads that consumer config, discovers the C++ source,
+registers the custom backend/API/page, and inspects a synthetic PE DLL without
+loading or executing it. A C++ compiler command is dry-run only and is skipped
+when no compatible compiler is installed. Tests also cover Java JAR/class,
+Python bytecode, WebAssembly, training, corpus auditing, encryption, web auth,
+simulation, math helpers, and local forwarding.
+
+Run the suite with:
+
+```powershell
+python -m pip install -e ".[dev,security]"
+python -m pytest -q
+```
+
+If a native C++ compiler is installed, the suite also verifies the compiler
+adapter's dry-run command. It does not execute generated DLL/EXE fixtures.
+
 ## EasyModel artifact tooling
 
 This distribution also includes the separate `EasyModel` namespace for safe,
-configurable artifact inspection and compiler/decompiler adapters. It does not
-replace the `easymodd` training API.
+configurable artifact inspection, simulations, app scaffolding, networking, and
+compiler/decompiler adapters. It does not replace the `easymodd` training API.
+
+The namespaces connect through `EasyModel.Workbench` and a bounded,
+thread-safe event bus. Training, simulations, corpus audits, artifact
+inspection, encryption, and custom tools publish redacted events to one local
+run history. `EzMHandler` is the root facade for coordinated operations.
 
 ```python
 from EasyModel import SecurityPolicy, detect_artifact
@@ -199,7 +268,149 @@ After installation:
 ```powershell
 easymodel detect application.jar --json
 easymodel inspect application.jar --json
+easymodel passport application.jar --json
+easymodel compare original.jar --against rebuilt.jar --json
+easymodel web
+easymodel lan
+easymodel app --name my_toolbox --directory ./my_toolbox --template toolbox
 ```
+
+An Artifact Passport adds a streaming SHA-256 identity plus safe structural
+metadata: JAR entry and manifest inventory, archive traversal/duplicate-name
+warnings, PE sections and .NET marker detection, Python bytecode header details,
+and WebAssembly section sizes. It never extracts or executes the artifact.
+Passports can be compared to see whether rebuilt or transformed outputs changed.
+
+### Local web workbench
+
+`easymodel web` starts a standard-library web console at `127.0.0.1:8765`. It
+combines artifact passports, corpus audits, file encryption, and recent shared
+events. The server prints a random session token; enter it in the page. Remote
+binding is rejected unless explicitly enabled with a token, and remote use must
+be behind HTTPS. Keyboard shortcuts only operate inside the open browser page;
+the library does not capture system-wide keystrokes.
+
+Trusted plugins can add isolated browser pages and authenticated POST API
+routes. A custom page can call registered routes through the parent console
+bridge without receiving the session token. Plugins execute Python code, so
+load only modules you trust.
+
+### Custom pages and API plugins
+
+Consumer-owned TOML controls plugin loading and the web address:
+
+```toml
+[plugins]
+enabled = true
+modules = ["my_project.easy_plugins"]
+
+[web]
+host = "127.0.0.1"
+port = 8765
+allow_remote = false
+```
+
+Each configured module exposes `register(workbench)`:
+
+```python
+from EasyModel import ApiRoute, ArtifactKind, WebPage
+from EasyModel.compilers import CompilerBackend
+from EasyModel.decompilers import ExternalDecompiler
+
+def register(workbench):
+  workbench.register_component("tools", "hello", lambda: {"ready": True})
+  workbench.register_compiler_backend(CompilerBackend("cc", "cc"))
+  workbench.register_decompiler_backend(ExternalDecompiler(
+    "my-java-decompiler", "my-decompiler", {ArtifactKind.JAR, ArtifactKind.CLASS}
+  ))
+  workbench.register_page(WebPage(
+    "/pages/status", "Project status",
+    "<main><h1>Project status</h1><p>Custom page content.</p></main>",
+  ))
+  workbench.register_api_route(ApiRoute(
+    "/api/custom/status", lambda body, hub: {"ready": True}
+  ))
+```
+
+The page runs in a sandboxed frame. It can ask the parent workbench to call
+only registered custom POST routes:
+
+```javascript
+window.parent.postMessage({
+  type: "easymodel-api",
+  path: "/api/custom/status",
+  payload: {}
+}, "*");
+```
+
+The browser hosts custom page HTML in a sandboxed frame. Custom API routes are
+POST-only and require the same session authentication as built-in operations.
+
+### App builder, simulation, and math
+
+Scaffold a separate consumer project without overwriting existing files:
+
+```powershell
+easymodel app --name lab_app --directory ./lab_app --template web
+easymodel app --name queue_sim --directory ./queue_sim --template simulation
+easymodel app --name model_lab --directory ./model_lab --template training
+```
+
+The `DiscreteEventSimulator` provides deterministic event scheduling, seeded
+randomness, and a maximum event count. Register simulation factories under
+the `simulations` component group and run them with `easymodel simulate --config
+config.toml --component your_simulator`. `EasyModel.mathx` provides stable
+softmax, blockwise pairwise distances, linear solves, and Simpson integration
+using NumPy's optimized kernels, finite-difference gradients, and deterministic memory-bounded Monte Carlo integration.
+
+The shared component registry includes starter providers for MLP models,
+discrete-event simulations, JAR inspection, project scaffolding, corpus audit,
+and artifact passports. Custom plugins may register more models, simulators,
+compilers, decompilers, apps, browser pages, and authenticated API routes.
+
+Compiler commands are blocked unless execution is explicitly allowed. Inspect
+the structured command first with `--dry-run`; only execute a toolchain and
+source you trust:
+
+```powershell
+easymodel compile main.c --backend cc --output app --dry-run --config config.toml
+easymodel compile main.c --backend cc --output app --allow-execution --config config.toml
+```
+
+### LAN hosting and TCP forwarding
+
+`easymodel lan` reports private interface addresses. To intentionally make the
+console reachable on a trusted LAN, use an environment token and explicitly
+enable remote binding:
+
+```powershell
+$env:EASYMODEL_WEB_TOKEN = "a-long-random-token"
+easymodel web --host 0.0.0.0 --allow-remote
+```
+
+`easymodel forward --port 9000 --target-host 127.0.0.1 --target-port 8000`
+forwards a local TCP port. Non-loopback bind addresses require
+`--allow-remote`. Forwarding does not edit router/firewall rules, configure
+UPnP, or create an Internet tunnel. External reachability remains the network
+owner's responsibility; never expose an unauthenticated service.
+
+### Streaming file encryption
+
+Install the optional security extra and keep passphrases in the environment,
+not shell history:
+
+```powershell
+python -m pip install "easymodd[security]"
+$env:EASYMODEL_PASSPHRASE = "use-a-long-unique-passphrase"
+easymodel encrypt confidential.bin --output confidential.bin.emenc
+easymodel decrypt confidential.bin.emenc --output restored.bin
+```
+
+Encryption uses chunked AES-256-GCM with authenticated headers/chunks,
+truncation detection, and atomic output. Files stream through fixed-size
+buffers rather than loading entirely into RAM. Passphrases are never saved in
+configs, event logs, or file metadata. Losing the passphrase means the file
+cannot be recovered.
 
 Supported artifact families include Java JAR/class, Windows PE EXE/DLL,
 .NET assemblies, Python bytecode, and WebAssembly detection. The first

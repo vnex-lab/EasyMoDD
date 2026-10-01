@@ -9,7 +9,7 @@ from .metrics import accuracy, mean_absolute_error, perplexity
 from .callbacks import EarlyStopping, MetricsLogger
 from .serialization import load_state, save_state
 from .training import Trainer, TrainingHistory
-from .data import ArrayDataset, BatchLoader, Dataset, Subset, TextDataset, collate_batch, split_dataset
+from .data import ArrayDataset, BatchLoader, Dataset, MMapTextDataset, Subset, TextDataset, collate_batch, split_dataset
 from .losses import CrossEntropyLoss, HuberLoss, L1Loss, MSELoss
 from .checkpoints import CheckpointManager
 from .experiments import Experiment
@@ -17,6 +17,7 @@ from .registry import ModelRegistry, models
 from .secret_store import SecretStore
 from .transforms import Compose, Flatten, MapTransform, Normalize, Standardize, ToFloat32
 from .visualization import summarize_history, summarize_model
+from .corpus import CorpusAudit, audit_corpus
 from .models import MLP, TextTransformerConfig, VisionTransformerConfig, build_mlp
 
 __all__ = [
@@ -29,6 +30,7 @@ __all__ = [
     "Compose",
     "CrossEntropyLoss",
     "CosineScheduler",
+    "CorpusAudit",
     "Dataset",
     "Dropout",
     "EarlyStopping",
@@ -44,6 +46,7 @@ __all__ = [
     "ModelRegistry",
     "Normalize",
     "MetricsLogger",
+    "MMapTextDataset",
     "Module",
     "Parameter",
     "ReLU",
@@ -61,6 +64,7 @@ __all__ = [
     "Subset",
     "array",
     "accuracy",
+    "audit_corpus",
     "backend_of",
     "MLP",
     "TextTransformerConfig",

@@ -1,0 +1,11 @@
+[project]
+name = "multi-file-demo"
+
+[plugins]
+enabled = true
+modules = ["plugins.easy_plugin"]
+
+[web]
+host = "127.0.0.1"
+port = 8765
+allow_remote = false

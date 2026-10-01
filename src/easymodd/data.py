@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import mmap
 import numpy as np
 
 
@@ -125,3 +126,66 @@ class TextDataset(Dataset):
     def __getitem__(self, index):
         window = self.windows[index]
         return window[:-1], window[1:]
+
+
+class MMapTextDataset(Dataset):
+    """Memory-mapped UTF-8 byte windows for corpora larger than RAM budgets.
+
+    This dataset uses raw UTF-8 bytes as token IDs 0..255, matching the
+    EasyMoDD byte-token convention. It stores no token list or window array;
+    each sample copies only one small window from the mapped file.
+    """
+
+    def __init__(self, source: str | Path, sequence_length: int, stride: int | None = None):
+        if sequence_length < 2:
+            raise ValueError("sequence_length must be at least 2")
+        self.path = Path(source).expanduser().resolve()
+        if not self.path.is_file():
+            raise FileNotFoundError(f"Text dataset was not found: {self.path}")
+        self.sequence_length = sequence_length
+        self.stride = stride if stride is not None else sequence_length
+        if self.stride < 1:
+            raise ValueError("stride must be at least 1")
+        self._file = self.path.open("rb")
+        self._size = self.path.stat().st_size
+        if self._size == 0:
+            self._file.close()
+            raise ValueError(f"Text dataset is empty: {self.path}")
+        self._mapping = mmap.mmap(self._file.fileno(), 0, access=mmap.ACCESS_READ)
+        self._valid_starts = max(0, self._size - sequence_length)
+        if self._valid_starts == 0:
+            self.close()
+            raise ValueError(
+                f"Text dataset has {self._size} bytes, but sequence_length={sequence_length} "
+                "requires at least sequence_length + 1 bytes."
+            )
+
+    def __len__(self):
+        return (self._valid_starts + self.stride - 1) // self.stride
+
+    def __getitem__(self, index):
+        if index < 0:
+            index += len(self)
+        if not 0 <= index < len(self):
+            raise IndexError(index)
+        start = index * self.stride
+        raw = self._mapping[start : start + self.sequence_length + 1]
+        tokens = np.frombuffer(raw, dtype=np.uint8).astype(np.int32)
+        return tokens[:-1], tokens[1:]
+
+    def close(self):
+        mapping = getattr(self, "_mapping", None)
+        if mapping is not None and not mapping.closed:
+            mapping.close()
+        handle = getattr(self, "_file", None)
+        if handle is not None and not handle.closed:
+            handle.close()
+
+    def __del__(self):
+        self.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
