@@ -1,6 +1,6 @@
 [project]
 name = "easymodd"
-version = "0.1.0"
+version = "0.2.4"
 description = "Composable model training, artifact analysis, secure workflows, and efficient data tooling"
 readme = "README.md"
 requires-python = ">=3.11"

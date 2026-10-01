@@ -27,6 +27,11 @@ jobs:
       - name: Build package
         run: python -m build
 
+      - name: Verify release tag matches package version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: python -c "import os, tomllib; from pathlib import Path; version=tomllib.loads(Path('pyproject.toml').read_text())['project']['version']; tag=os.environ['RELEASE_TAG'].removeprefix('v'); assert tag == version, f'Release tag {tag} does not match pyproject version {version}'"
+
       - name: Validate package metadata
         run: python -m twine check dist/*
 
@@ -52,3 +57,5 @@ jobs:
 
       - name: Publish with trusted publishing
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: false
