@@ -97,6 +97,10 @@ class Workbench:
     def load_plugins(self, modules: list[str], *, enabled: bool = False):
         return PluginLoader.load(modules, self, enabled=enabled)
 
+    def run_workflow(self, workflow, *, inputs=None, fail_fast: bool = True):
+        self.event_bus.publish("workbench", "workflow.dispatched", {"name": workflow.name})
+        return workflow.run(inputs=inputs, fail_fast=fail_fast)
+
     @classmethod
     def from_config(cls, path: str):
         from .config import load_config

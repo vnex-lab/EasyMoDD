@@ -25,6 +25,7 @@ from .simulation import DiscreteEventSimulator, SimulationEvent, SimulationResul
 from .mathx import IntegrationEstimate, finite_difference_gradient, integrate_simpson, monte_carlo_integrate, pairwise_distances, solve_linear, stable_softmax
 from .app_builder import create_app
 from .networking import TcpPortForwarder, lan_addresses
+from .workflows import Workflow, WorkflowContext, WorkflowReport, WorkflowStep
 from easymodd.secret_store import SecretStore
 
 __all__ = [
@@ -60,6 +61,10 @@ __all__ = [
     "WebPage",
     "Workbench",
     "WorkbenchEvent",
+    "Workflow",
+    "WorkflowContext",
+    "WorkflowReport",
+    "WorkflowStep",
     "detect_artifact",
     "decrypt_file",
     "encrypt_file",

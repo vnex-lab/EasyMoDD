@@ -368,6 +368,39 @@ discrete-event simulations, JAR inspection, project scaffolding, corpus audit,
 and artifact passports. Custom plugins may register more models, simulators,
 compilers, decompilers, apps, browser pages, and authenticated API routes.
 
+### Connected workflows
+
+`Workflow` lets a consumer compose these separate tools into one dependency-
+ordered run. Results become named inputs to later steps; failures, retries,
+skips, durations, and lifecycle events are reported without forcing the tools
+to share implementation details:
+
+```python
+from EasyModel import Workflow, Workbench
+
+hub = Workbench()
+workflow = Workflow("dataset-to-model")
+workflow.add("audit", lambda context: hub.audit_corpus("data/train.txt"))
+workflow.add(
+  "train",
+  lambda context: hub.train(model, trainer, dataset),
+  depends_on=["audit"],
+  retries=1,
+)
+workflow.add(
+  "passport",
+  lambda context: hub.passport("artifacts/model.bin"),
+  depends_on=["train"],
+)
+report = hub.run_workflow(workflow)
+if not report.ok:
+  print(report.errors)
+```
+
+Workflows are Python callbacks by design: users control what runs, data passed
+between steps, and retry policy. They are bounded to 500 steps by default and
+do not evaluate arbitrary expression strings from configuration.
+
 Compiler commands are blocked unless execution is explicitly allowed. Inspect
 the structured command first with `--dry-run`; only execute a toolchain and
 source you trust:

@@ -34,7 +34,7 @@ jobs:
         run: python -m pip install -e ".[dev,security]"
 
       - name: Import smoke test
-        run: python -c "import EasyModel, easymodd; from EasyModel import ApiRoute, ComponentRegistry, DiscreteEventSimulator, EventBus, TcpPortForwarder, WebPage, Workbench, create_app, create_passport, create_server, encrypt_file, pairwise_distances; from easymodd import MMapTextDataset, audit_corpus; hub=Workbench(); assert 'mlp' in hub.components.names('models'); print(EasyModel.__name__, easymodd.__name__, Workbench.__name__, EventBus.__name__, DiscreteEventSimulator.__name__, create_passport.__name__, MMapTextDataset.__name__, audit_corpus.__name__)"
+        run: python -c "import EasyModel, easymodd; from EasyModel import ApiRoute, ComponentRegistry, DiscreteEventSimulator, EventBus, TcpPortForwarder, WebPage, Workbench, Workflow, create_app, create_passport, create_server, encrypt_file, pairwise_distances; from easymodd import MMapTextDataset, audit_corpus; hub=Workbench(); assert 'mlp' in hub.components.names('models'); print(EasyModel.__name__, easymodd.__name__, Workbench.__name__, Workflow.__name__, EventBus.__name__, DiscreteEventSimulator.__name__, create_passport.__name__, MMapTextDataset.__name__, audit_corpus.__name__)"
 
       - name: Run subsystem and integration tests
         run: python -m pytest -q
