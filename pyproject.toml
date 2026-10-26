@@ -1,6 +1,6 @@
 [project]
 name = "easymodd"
-version = "0.3.0"
+version = "0.5.1"
 description = "Multi-tool Python library: file management, custom API engine, encryption, containers, console, VPS, VPN, keys and tokens"
 readme = "README.md"
 requires-python = ">=3.11"
