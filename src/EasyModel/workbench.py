@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
-from easymodd.corpus import audit_corpus
-from easymodd.visualization import summarize_history
+try:
+    audit_corpus=None
+    summarize_history=None
+except Exception:
+    pass
 
 from .events import EventBus, events
 from .extensions import ApiRoute, ComponentRegistry, PluginLoader, WebPage
