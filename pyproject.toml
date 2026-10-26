@@ -1,7 +1,7 @@
 [project]
 name = "easymodd"
-version = "0.2.4"
-description = "Composable model training, artifact analysis, secure workflows, and efficient data tooling"
+version = "0.3.0"
+description = "Multi-tool Python library: file management, custom API engine, encryption, containers, console, VPS, VPN, keys and tokens"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
